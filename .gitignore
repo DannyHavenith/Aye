@@ -1,0 +1,5 @@
+.pio
+*.stl
+.cproject
+.project
+.settings
