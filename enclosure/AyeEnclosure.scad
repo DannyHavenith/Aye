@@ -1,5 +1,5 @@
 pcb_width = 26;
-pcb_length = 35.5;
+pcb_length = 35;
 pcb_thickness = 2;
 pcb_dims = [pcb_length, pcb_width, pcb_thickness];
 thin_wall = 1.2;
@@ -85,15 +85,6 @@ module flatroundedcube( dimensions, r)
                 translate(up( inner, [x,y,0])) cylinder( h = dimensions[2], r = r, $fn = 20);
 }
 
-module demo()
-{
-    offset = 5;
-    wemos_d1_mini_clip( offset);
-    
-    // bottom to hold it all together
-    translate([-thin_wall, -thin_wall,-offset]) cube([ pcb_length, pcb_width, 1] + 2*[thin_wall, thin_wall,0]);
-}
-
 function uniform_product( a, b) = [ a[0] * b[0], a[1] * b[1], a[2] * b[2]];
 function up(a,b) = uniform_product( a,b);
 
@@ -133,11 +124,11 @@ module tabs( expand = false)
 
 module bottom()
 {
-    usb_hole = [0, 11, 7.5]; // hole size
+    usb_hole = [0, 13, 9]; // hole size
     extent_length = 8;
     usb_extent = [usb_hole[2]+2, usb_hole[1], extent_length] + walls;
-    hole_pcb_offset = [0, 12, -2.5,]; // offset of hole center from SE corner of pcb
-    pcb_offset = 6; // height of pcb above floor
+    hole_pcb_offset = [0, 12, -1,]; // offset of hole center from SE corner of pcb
+    pcb_offset = 5; // height of pcb above floor
     pcb_SE_corner = up( pcb_dims, [.5, -.5, 0]) +
                     [0,0,-inner_dims[2]/2 + pcb_offset];
                    
@@ -165,11 +156,51 @@ module bottom()
         wemos_d1_mini_clip( pcb_offset + d);
 }
 
-//tab();
-//tabs();
-bottom();
-//case();
-//demo();
-//wemos_d1_mini_clip();
-//frame_corner( 5);
-//edged_box();
+module arm_hinge()
+{
+    hinge_outer_d = 15;
+    hinge_inner_d = 5;
+    hinge_thickness = wall;
+    
+    translate([0,0,-hinge_inner_d/2 - d]) rotate([-90, 0, 0]) difference()
+    {
+        cylinder( d= hinge_outer_d, h = hinge_thickness, $fn=50);
+        translate([0,0,-d]) cylinder( d = hinge_inner_d, h = hinge_thickness + 2 * d, $fn=50);
+    }
+}
+
+module arm()
+{
+    arm_length = 1.2 * outer_dims[2];
+    arm_thickness=wall;
+    arm_width = 10;
+    
+    translate([0,0, outer_dims[2]/2 - arm_length])
+    union()
+    {
+        translate([-arm_width/2,0,0])
+            cube([arm_width, arm_thickness, arm_length]);
+        arm_hinge();
+    }
+}
+
+module top()
+{
+    pir_size = 23.5;
+    pir_hole_dims = [ pir_size, pir_size, wall+2*d];
+    tabs();
+    difference()
+    {
+        union() 
+        {
+            case(false);
+            translate(up( outer_dims, [0,.5,0]) - [0,d,0]) arm();
+            translate(up( outer_dims, [0,-.5,0]) + [0,d,0]) rotate([0,0,180]) arm();
+        }
+        translate(up( [0,0,.25], inner_dims + outer_dims)) flatroundedcube( pir_hole_dims, 1);
+        case( true);
+    }
+}
+
+rotate([0,180,0]) top();
+//bottom();
