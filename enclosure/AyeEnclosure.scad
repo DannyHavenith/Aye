@@ -202,5 +202,8 @@ module top()
     }
 }
 
-rotate([0,180,0]) top();
-//bottom();
+translate(up(outer_dims, [0,0,.5]))
+{
+    rotate([0,180,0]) top();
+    translate(up(outer_dims, [0,1,0]) + [0,5,0]) bottom();
+}
