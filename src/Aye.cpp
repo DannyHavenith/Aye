@@ -126,6 +126,7 @@ void setup()
 
     connectToAccessPoint();
     reconnect();
+    setupOTA();
     digitalWrite( LED_BUILTIN, HIGH); // switch off LED.
     delay( 10000); // wait 10s for the PIR to settle
     digitalWrite( LED_BUILTIN, HIGH); // switch off LED.
@@ -149,5 +150,6 @@ void loop()
         digitalWrite( LED_BUILTIN, HIGH);
     }
     client.loop();
+    ArduinoOTA.handle();
 }
 
