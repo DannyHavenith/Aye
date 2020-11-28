@@ -10,6 +10,7 @@
 #include <PubSubClient.h>
 #include <ESP8266WiFi.h>
 #include <Arduino.h>
+#include <ArduinoOTA.h>
 
 namespace {
 
@@ -34,7 +35,13 @@ namespace {
         digitalWrite( LED_BUILTIN, LOW);
     }
 
-    void reconnect() {
+    void reconnect()
+    {
+
+        if (WiFi.status() != WL_CONNECTED)
+        {
+            connectToAccessPoint();
+        }
 
         // Loop until we're reconnected
         // Create a random client ID
@@ -43,10 +50,9 @@ namespace {
         clientId += String(random(0xffff), HEX);
         while ( not client.connected())
         {
-            if (client.connect(clientId.c_str()))
+            if (client.connect(clientId.c_str(), nullptr, nullptr, "Aye/01/connected", 0, false, "0"))
             {
-                digitalWrite( LED_BUILTIN, LOW);
-                client.publish("Aye/version", "1.0");
+                client.publish("Aye/01/connected", "1");
             }
             else
             {
@@ -54,6 +60,63 @@ namespace {
                 delay(5000);
             }
         }
+    }
+
+    void setupOTA()
+    {
+        ArduinoOTA.setHostname( myName);
+        ArduinoOTA.onStart( []()
+        {
+            String type;
+            if (ArduinoOTA.getCommand() == U_FLASH)
+            {
+                type = "sketch";
+            }
+            else
+            { // U_SPIFFS
+                    type = "filesystem";
+            }
+
+            // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+            Serial.println("Start updating " + type);
+        });
+
+        ArduinoOTA.onEnd( []()
+        {
+            Serial.println("\nEnd");
+        });
+
+        ArduinoOTA.onProgress( [](unsigned int progress, unsigned int total)
+        {
+            Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+        });
+
+        ArduinoOTA.onError( [](ota_error_t error)
+        {
+            Serial.printf("Error[%u]: ", error);
+            if (error == OTA_AUTH_ERROR)
+            {
+                Serial.println("Auth Failed");
+            }
+            else if (error == OTA_BEGIN_ERROR)
+            {
+                Serial.println("Begin Failed");
+            }
+            else if (error == OTA_CONNECT_ERROR)
+            {
+                Serial.println("Connect Failed");
+            }
+            else if (error == OTA_RECEIVE_ERROR)
+            {
+                Serial.println("Receive Failed");
+            }
+            else if (error == OTA_END_ERROR)
+            {
+                Serial.println("End Failed");
+            }
+        });
+
+        ArduinoOTA.begin();
     }
 }
 void setup()
@@ -63,6 +126,9 @@ void setup()
 
     connectToAccessPoint();
     reconnect();
+    digitalWrite( LED_BUILTIN, HIGH); // switch off LED.
+    delay( 10000); // wait 10s for the PIR to settle
+    digitalWrite( LED_BUILTIN, HIGH); // switch off LED.
 }
 
 void loop()
@@ -74,7 +140,14 @@ void loop()
     if (pirState != previousPirState)
     {
         previousPirState = pirState;
-        client.publish( topic.c_str(), previousPirState?"1":"0");
+        while (not client.publish( topic.c_str(), pirState?"1":"0"))
+        {
+            delay(500);
+            reconnect();
+            digitalWrite( LED_BUILTIN, not digitalRead( LED_BUILTIN));
+        }
+        digitalWrite( LED_BUILTIN, HIGH);
     }
+    client.loop();
 }
 
