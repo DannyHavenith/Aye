@@ -169,10 +169,10 @@ module arm_hinge()
     }
 }
 
+arm_thickness= wall;
 module arm()
 {
     arm_length = 1.2 * outer_dims[2];
-    arm_thickness=wall;
     arm_width = 10;
     
     translate([0,0, outer_dims[2]/2 - arm_length])
@@ -202,8 +202,60 @@ module top()
     }
 }
 
-translate(up(outer_dims, [0,0,.5]))
+module enclosure()
 {
-    rotate([0,180,0]) top();
-    translate(up(outer_dims, [0,1,0]) + [0,5,0]) bottom();
+    translate(up(outer_dims, [0,0,.5]))
+    {
+        rotate([0,180,0]) top();
+        translate(up(outer_dims, [0,1,0]) + [0,5,0]) bottom();
+    }
 }
+
+/**
+* Wall bracket
+*/
+module fixture()
+{
+    module bracket()
+    {
+        bracket_height = 15;
+        bracket_depth = 20;
+        bracket_width = outer_dims[1] + 2 * arm_thickness + 2 * wall;
+        bracket_outer_dims = [bracket_depth, bracket_width, bracket_height];
+        bracket_inner_dims = bracket_outer_dims - [0,2*wall,0];
+        pivot_wide = 7;
+        pivot_narrow = 1;
+        pivot_depth = 5;
+        pivot_offset = up( bracket_outer_dims, [1,0,1]) - [pivot_wide/2 + wall, 0, pivot_wide/2 + wall];
+        
+        module pivot()
+        {
+            cylinder(d1 = pivot_wide, d2 = pivot_narrow, h = pivot_depth, $fn=50);
+        }
+        
+        translate([-wall, -.5*bracket_width, -wall])
+        difference()
+        {
+            cube(bracket_outer_dims);
+            translate([wall, wall, wall]) cube(bracket_inner_dims);
+        }
+        
+        pivot_y_offset = [0, .5 * bracket_inner_dims[1] + d, 0];
+        translate( pivot_offset + pivot_y_offset) rotate([90,0,0]) pivot();
+        translate( pivot_offset - pivot_y_offset) rotate([-90,0,0]) pivot();
+    }
+    
+    bar_length = 70;
+    bar_width = 9;
+    translate([wall, 0, wall]) bracket();
+    cube_dims = [bar_length,bar_width,10];
+    translate(up( cube_dims, [-.5, 0, .5]) + [d, 0, 0]) difference()
+    {
+        cube(cube_dims, center=true);
+        cube( cube_dims - [14, 2*wall, -2*d], center=true);
+    }
+}
+
+// Choose whether to generate the enclosure or the wall fixture.
+enclosure();
+//fixture();
