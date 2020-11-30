@@ -160,7 +160,7 @@ module arm_hinge()
 {
     hinge_outer_d = 15;
     hinge_inner_d = 5;
-    hinge_thickness = wall;
+    hinge_thickness = arm_thickness;
     
     translate([0,0,-hinge_inner_d/2 - d]) rotate([-90, 0, 0]) difference()
     {
@@ -169,17 +169,25 @@ module arm_hinge()
     }
 }
 
-arm_thickness= wall;
+arm_thickness= wall + .4;
 module arm()
 {
     arm_length = 1.2 * outer_dims[2];
     arm_width = 10;
+    cutoff_height = 5;
+    support_width = arm_width/4;
     
     translate([0,0, outer_dims[2]/2 - arm_length])
     union()
     {
         translate([-arm_width/2,0,0])
             cube([arm_width, arm_thickness, arm_length]);
+        translate([-arm_thickness/2, arm_thickness-d, 0 ]) difference()
+        {
+            cube( [arm_thickness, support_width, arm_length]);
+            translate([-d, -5, 0]) rotate([-45,0,0])
+                cube( [arm_thickness + 2*d, 4*support_width +2*d, 6 * support_width] );
+        } 
         arm_hinge();
     }
 }
@@ -207,25 +215,25 @@ module enclosure()
     translate(up(outer_dims, [0,0,.5]))
     {
         rotate([0,180,0]) top();
-        translate(up(outer_dims, [0,1,0]) + [0,5,0]) bottom();
+        translate(up(outer_dims, [0,1,0]) + [0,7,0]) bottom();
     }
 }
 
 /**
 * Wall bracket
 */
-module fixture()
+module fixture( style = 0)
 {
     module bracket()
     {
         bracket_height = 15;
         bracket_depth = 20;
-        bracket_width = outer_dims[1] + 2 * arm_thickness + 2 * wall;
+        bracket_width = outer_dims[1] + 2 * arm_thickness + 2 * wall + 2;
         bracket_outer_dims = [bracket_depth, bracket_width, bracket_height];
         bracket_inner_dims = bracket_outer_dims - [0,2*wall,0];
         pivot_wide = 7;
         pivot_narrow = 1;
-        pivot_depth = 5;
+        pivot_depth = 2;
         pivot_offset = up( bracket_outer_dims, [1,0,1]) - [pivot_wide/2 + wall, 0, pivot_wide/2 + wall];
         
         module pivot()
@@ -245,17 +253,40 @@ module fixture()
         translate( pivot_offset - pivot_y_offset) rotate([-90,0,0]) pivot();
     }
     
-    bar_length = 70;
-    bar_width = 9;
-    translate([wall, 0, wall]) bracket();
-    cube_dims = [bar_length,bar_width,10];
-    translate(up( cube_dims, [-.5, 0, .5]) + [d, 0, 0]) difference()
+    if (style == 0)
     {
-        cube(cube_dims, center=true);
-        cube( cube_dims - [14, 2*wall, -2*d], center=true);
+        bar_length = 70;
+        bar_width = 9;
+        cube_dims = [bar_length,bar_width,10];
+        translate(up( cube_dims, [-.5, 0, .5]) + [d, 0, 0]) difference()
+        {
+            cube(cube_dims, center=true);
+            cube( cube_dims - [14, 2*wall, -2*d], center=true);
+        }
     }
+    else
+    {
+        width = 4;
+        depth = 11;
+        height = 23;
+        slot = 10;
+        slot_depth = 3;
+        slot_offset = 0.4;
+        translate([-depth + d, -width/2, 0]) difference()
+        {
+            cube([depth, width, height]);
+            
+            #translate([depth - slot_offset - slot_depth, -d, -d])
+                cube( [slot_depth, width + 2 * d, slot]);
+        }
+    }
+    
+    translate([wall, 0, wall]) bracket();
+
 }
 
 // Choose whether to generate the enclosure or the wall fixture.
 enclosure();
-//fixture();
+//fixture(1);
+
+
