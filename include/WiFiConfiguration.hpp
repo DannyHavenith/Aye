@@ -12,7 +12,7 @@ namespace
 {
 	// credentials to log on to WiFi network
 	constexpr auto networkSID = "<yourSSIDHere>";
-	constexpr auto networkPassword = "<yourPasswordHere>;
+	constexpr auto networkPassword = "<yourPasswordHere>";
 
 	// host name AND access point name
 	constexpr auto myName = "Aye001";
