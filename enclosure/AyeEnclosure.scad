@@ -10,6 +10,10 @@ d = .01;
 d3 = [d,d,d];
 
 
+// Choose whether to generate the enclosure or the wall fixture.
+enclosure( do_bottom = true, do_top = true);
+//fixture( style = 1);
+
 /**
 * essentially a cube with one of the edges cut off.
 */
@@ -156,18 +160,36 @@ module bottom()
         wemos_d1_mini_clip( pcb_offset + d);
 }
 
+
+hinge_outer_d = 15;
+hinge_inner_d = 5;
 module arm_hinge()
 {
-    hinge_outer_d = 15;
-    hinge_inner_d = 5;
     hinge_thickness = arm_thickness;
+    knurls = 14;
     
-    translate([0,0,-hinge_inner_d/2 - d]) rotate([-90, 0, 0]) difference()
+    translate([0,0,-hinge_inner_d/2 - d])
+    union() 
     {
-        cylinder( d= hinge_outer_d, h = hinge_thickness, $fn=50);
-        translate([0,0,-d]) cylinder( d = hinge_inner_d, h = hinge_thickness + 2 * d, $fn=50);
+        rotate([-90, 0, 0]) difference()
+        {
+            cylinder( d= hinge_outer_d, h = hinge_thickness, $fn=50);
+            translate([0,0,-d]) cylinder( d = hinge_inner_d, h = hinge_thickness + 2 * d, $fn=50);
+        }
+        translate([0,hinge_thickness,0]) rotate([0,180/knurls,0]) for( a = [0:360/knurls:360-d]) rotate([0, a, 0]) knurl();
     }
 }
+
+module knurl()
+{
+    knurl_r = .4;
+    difference()
+    {
+        cylinder(r = knurl_r, h = hinge_outer_d/2,  $fn = 50);
+        translate([0,0,-d]) cylinder(r = knurl_r + d, h = hinge_inner_d/2, $fn = 50);
+    }
+}
+
 
 arm_thickness= wall + .4;
 module arm()
@@ -210,12 +232,12 @@ module top()
     }
 }
 
-module enclosure()
+module enclosure( do_top = true, do_bottom = true)
 {
     translate(up(outer_dims, [0,0,.5]))
     {
-        rotate([0,180,0]) top();
-        translate(up(outer_dims, [0,1,0]) + [0,7,0]) bottom();
+        if (do_top) rotate([0,180,0]) top();
+        if (do_bottom) translate(up(outer_dims, [0,1,0]) + [0,7,0]) bottom();
     }
 }
 
@@ -249,8 +271,12 @@ module fixture( style = 0)
         }
         
         pivot_y_offset = [0, .5 * bracket_inner_dims[1] + d, 0];
-        translate( pivot_offset + pivot_y_offset) rotate([90,0,0]) pivot();
-        translate( pivot_offset - pivot_y_offset) rotate([-90,0,0]) pivot();
+        
+        for (side = [-1,1])
+        {
+            translate( pivot_offset + side * pivot_y_offset) rotate([side * 90,0,0]) pivot();
+            translate( pivot_offset + side * pivot_y_offset) rotate([0, -90, 0]) knurl();
+        }
     }
     
     if (style == 0)
@@ -285,8 +311,5 @@ module fixture( style = 0)
 
 }
 
-// Choose whether to generate the enclosure or the wall fixture.
-enclosure();
-//fixture(1);
 
 
