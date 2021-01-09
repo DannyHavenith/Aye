@@ -15,7 +15,7 @@
 namespace {
 
     constexpr auto pirIn = D1;
-    constexpr auto myId = "01";
+    constexpr auto myId = "02";
 
     WiFiClient espClient;
     PubSubClient client(espClient);
@@ -48,11 +48,12 @@ namespace {
         client.setServer(mqttServer, mqttPort);
         String clientId = "ESP8266Client-";
         clientId += String(random(0xffff), HEX);
+        static const String connectedTopic = String("Aye/") + String( myId) + String("/connected");
         while ( not client.connected())
         {
-            if (client.connect(clientId.c_str(), nullptr, nullptr, "Aye/01/connected", 0, false, "0"))
+            if (client.connect(clientId.c_str(), nullptr, nullptr, connectedTopic.c_str() , 0, false, "0"))
             {
-                client.publish("Aye/01/connected", "1");
+                client.publish( connectedTopic.c_str(), "1");
             }
             else
             {
@@ -65,57 +66,6 @@ namespace {
     void setupOTA()
     {
         ArduinoOTA.setHostname( myName);
-        ArduinoOTA.onStart( []()
-        {
-            String type;
-            if (ArduinoOTA.getCommand() == U_FLASH)
-            {
-                type = "sketch";
-            }
-            else
-            { // U_SPIFFS
-                    type = "filesystem";
-            }
-
-            // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-            Serial.println("Start updating " + type);
-        });
-
-        ArduinoOTA.onEnd( []()
-        {
-            Serial.println("\nEnd");
-        });
-
-        ArduinoOTA.onProgress( [](unsigned int progress, unsigned int total)
-        {
-            Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-        });
-
-        ArduinoOTA.onError( [](ota_error_t error)
-        {
-            Serial.printf("Error[%u]: ", error);
-            if (error == OTA_AUTH_ERROR)
-            {
-                Serial.println("Auth Failed");
-            }
-            else if (error == OTA_BEGIN_ERROR)
-            {
-                Serial.println("Begin Failed");
-            }
-            else if (error == OTA_CONNECT_ERROR)
-            {
-                Serial.println("Connect Failed");
-            }
-            else if (error == OTA_RECEIVE_ERROR)
-            {
-                Serial.println("Receive Failed");
-            }
-            else if (error == OTA_END_ERROR)
-            {
-                Serial.println("End Failed");
-            }
-        });
-
         ArduinoOTA.begin();
     }
 }
